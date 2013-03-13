@@ -178,7 +178,8 @@
 					>
 					<Tool
 						Name="VCCustomBuildTool"
-						CommandLine="cl.exe /EP /I . /I $(SolutionDir)..\libffi\include /I $(SolutionDir)..\libffi\src\x86 %(FullPath) &gt; $(Platform)/$(Configuration)/win32_plain.asm&#x0D;&#x0A;ml.exe /c /Cx /coff /Fo $(Platform)/$(Configuration)/win32.obj $(Platform)/$(Configuration)/win32_plain.asm&#x0D;&#x0A;"
+						CommandLine="cl.exe /EP /I . /I $(SolutionDir)..\.. /I $(SolutionDir)..\..\include /I $(SolutionDir)..\..\src\x86 $(SolutionDir)..\..\src\x86\win32.S &gt; $(ConfigurationName)/win32_plain.asm&#x0D;&#x0A;ml.exe /c /Cx /coff /Fo $(ConfigurationName)/win32.obj $(ConfigurationName)/win32_plain.asm&#x0D;&#x0A;"
+						Outputs="$(ConfigurationName)\win32.obj"
 					/>
 				</FileConfiguration>
 				<FileConfiguration
