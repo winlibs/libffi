@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
       <Configuration>Debug</Configuration>
@@ -20,14 +20,14 @@
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <CharacterSet>Unicode</CharacterSet>
-    <PlatformToolset>v110</PlatformToolset>
+    <PlatformToolset>v140</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
-    <PlatformToolset>v110</PlatformToolset>
+    <PlatformToolset>v140</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -76,11 +76,11 @@
     <CustomBuild Include="..\..\..\src\x86\win32.S">
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-      cl.exe /EP /I . /I $(SolutionDir)..\.. /I $(SolutionDir)..\..\include /I $(SolutionDir)..\..\src\x86 $(SolutionDir)..\..\src\x86\win32.S > $(Configuration)/win32_plain.asm
+      cl.exe /EP /I . /I $(SolutionDir)..\.. /I $(SolutionDir)..\..\include /I $(SolutionDir)..\..\src\x86 $(SolutionDir)..\..\src\x86\win32.S &gt; $(Configuration)/win32_plain.asm
       ml.exe /c /Cx /coff /Fo $(Configuration)/win32.obj $(Configuration)/win32_plain.asm
 </Command>
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-      cl.exe /EP /I . /I $(SolutionDir)..\.. /I $(SolutionDir)..\..\include /I $(SolutionDir)..\..\src\x86 $(SolutionDir)..\..\src\x86\win32.S > $(Configuration)/win32_plain.asm
+      cl.exe /EP /I . /I $(SolutionDir)..\.. /I $(SolutionDir)..\..\include /I $(SolutionDir)..\..\src\x86 $(SolutionDir)..\..\src\x86\win32.S &gt; $(Configuration)/win32_plain.asm
       ml.exe /c /Cx /coff /Fo $(Configuration)/win32.obj $(Configuration)/win32_plain.asm
 </Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(Configuration)/win32.obj</Outputs>
