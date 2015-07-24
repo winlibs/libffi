@@ -145,10 +145,10 @@
 #define PACKAGE_VERSION "3.2.1"
 
 /* The size of `double', as computed by sizeof. */
-#define SIZEOF_DOUBLE 0
+#define SIZEOF_DOUBLE (sizeof(double))
 
 /* The size of `long double', as computed by sizeof. */
-#define SIZEOF_LONG_DOUBLE 0
+#define SIZEOF_LONG_DOUBLE (sizeof(long double))
 
 /* If using the C implementation of alloca, define if you know the
    direction of stack growth for your system; otherwise it will be
