@@ -77,11 +77,11 @@
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
       cl.exe /EP /I . /I $(SolutionDir)..\.. /I $(SolutionDir)..\..\include /I $(SolutionDir)..\..\src\x86 $(SolutionDir)..\..\src\x86\win32.S &gt; $(Configuration)/win32_plain.asm
-      ml.exe /c /Cx /coff /Fo $(Configuration)/win32.obj $(Configuration)/win32_plain.asm
+      ml.exe /c /Cx /coff /safeseh /Fo $(Configuration)/win32.obj $(Configuration)/win32_plain.asm
 </Command>
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
       cl.exe /EP /I . /I $(SolutionDir)..\.. /I $(SolutionDir)..\..\include /I $(SolutionDir)..\..\src\x86 $(SolutionDir)..\..\src\x86\win32.S &gt; $(Configuration)/win32_plain.asm
-      ml.exe /c /Cx /coff /Fo $(Configuration)/win32.obj $(Configuration)/win32_plain.asm
+      ml.exe /c /Cx /coff /safeseh /Fo $(Configuration)/win32.obj $(Configuration)/win32_plain.asm
 </Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(Configuration)/win32.obj</Outputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(Configuration)/win32.obj</Outputs>
