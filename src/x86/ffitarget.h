@@ -87,6 +87,7 @@ typedef enum ffi_abi {
   FFI_MS_CDECL,
   FFI_PASCAL,
   FFI_REGISTER,
+  FFI_VECTORCALL_PARTIAL,
   FFI_LAST_ABI,
 #ifdef _MSC_VER
   FFI_DEFAULT_ABI = FFI_MS_CDECL
@@ -96,6 +97,7 @@ typedef enum ffi_abi {
 
 #elif defined(X86_WIN64)
   FFI_WIN64,
+  FFI_VECTORCALL_PARTIAL,
   FFI_LAST_ABI,
   FFI_DEFAULT_ABI = FFI_WIN64
 

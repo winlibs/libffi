@@ -70,9 +70,9 @@ unsigned int ffi_prep_args(char *stack, extended_cif *ecif)
       )
     {
 #ifndef X86_WIN64
-      /* For fastcall/thiscall/register this is first register-passed
+      /* For fastcall/thiscall/register/vectorcall this is first register-passed
          argument.  */
-      if (cabi == FFI_THISCALL || cabi == FFI_FASTCALL || cabi == FFI_REGISTER)
+      if (cabi == FFI_THISCALL || cabi == FFI_FASTCALL || cabi == FFI_REGISTER || cabi == FFI_VECTORCALL_PARTIAL)
         {
           p_stack_data[stack_args_count] = argp;
           ++stack_args_count;
@@ -166,13 +166,14 @@ unsigned int ffi_prep_args(char *stack, extended_cif *ecif)
         }
 
 #ifndef X86_WIN64
-    /* For thiscall/fastcall/register convention register-passed arguments
+    /* For thiscall/fastcall/register/vectorcall convention register-passed arguments
        are the first two none-floating-point arguments with a size
        smaller or equal to sizeof (void*).  */
     if ((z == FFI_SIZEOF_ARG)
         && ((cabi == FFI_REGISTER)
           || (cabi == FFI_THISCALL && stack_args_count < 1)
-          || (cabi == FFI_FASTCALL && stack_args_count < 2))
+          || (cabi == FFI_FASTCALL && stack_args_count < 2)
+          || (cabi == FFI_VECTORCALL_PARTIAL && stack_args_count < 2))
         && ((*p_arg)->type != FFI_TYPE_FLOAT && (*p_arg)->type != FFI_TYPE_STRUCT)
        )
       {
@@ -198,7 +199,7 @@ unsigned int ffi_prep_args(char *stack, extended_cif *ecif)
     }
 
 #ifndef X86_WIN64
-  /* We need to move the register-passed arguments for thiscall/fastcall/register
+  /* We need to move the register-passed arguments for thiscall/fastcall/register/vectorcall
      on top of stack, so that those can be moved to registers by call-handler.  */
   if (stack_args_count > 0)
     {
@@ -380,6 +381,7 @@ void ffi_call(ffi_cif *cif, void (*fn)(void), void *rvalue, void **avalue)
     {
 #ifdef X86_WIN64
     case FFI_WIN64:
+    case FFI_VECTORCALL_PARTIAL:
       ffi_call_win64(ffi_prep_args, &ecif, cif->bytes,
                      cif->flags, ecif.rvalue, fn);
       break;
@@ -398,6 +400,7 @@ void ffi_call(ffi_cif *cif, void (*fn)(void), void *rvalue, void **avalue)
     case FFI_FASTCALL:
     case FFI_PASCAL:
     case FFI_REGISTER:
+    case FFI_VECTORCALL_PARTIAL:
       ffi_call_win32(ffi_prep_args, &ecif, cif->abi, cif->bytes, cif->flags,
                      ecif.rvalue, fn);
       break;
@@ -530,6 +533,7 @@ ffi_prep_incoming_args(char *stack, void **rvalue, void **avalue,
   const unsigned int max_stack_count = (cabi == FFI_THISCALL) ? 1
                                      : (cabi == FFI_FASTCALL) ? 2
                                      : (cabi == FFI_REGISTER) ? 3
+                                     : (cabi == FFI_VECTORCALL_PARTIAL) ? 2
                                      : 0;
   unsigned int passed_regs = 0;
   void *p_stack_data[3] = { stack - 1 };
@@ -726,7 +730,7 @@ ffi_prep_closure_loc (ffi_closure* closure,
 #ifdef X86_WIN64
 #define ISFLOAT(IDX) (cif->arg_types[IDX]->type == FFI_TYPE_FLOAT || cif->arg_types[IDX]->type == FFI_TYPE_DOUBLE)
 #define FLAG(IDX) (cif->nargs>(IDX)&&ISFLOAT(IDX)?(1<<(IDX)):0)
-  if (cif->abi == FFI_WIN64) 
+  if (cif->abi == FFI_WIN64 || cif->abi == FFI_VECTORCALL_PARTIAL) 
     {
       int mask = FLAG(0)|FLAG(1)|FLAG(2)|FLAG(3);
       FFI_INIT_TRAMPOLINE_WIN64 (&closure->tramp[0],
@@ -747,7 +751,7 @@ ffi_prep_closure_loc (ffi_closure* closure,
                                    &ffi_closure_REGISTER,
                                    (void*)codeloc);
     }
-  else if (cif->abi == FFI_FASTCALL)
+  else if (cif->abi == FFI_FASTCALL || cif->abi == FFI_VECTORCALL_PARTIAL)
     {
       FFI_INIT_TRAMPOLINE_WIN32 (&closure->tramp[0],
                                    &ffi_closure_FASTCALL,
@@ -848,6 +852,7 @@ ffi_prep_args_raw(char *stack, extended_cif *ecif)
   const unsigned int max_regs = (abi == FFI_THISCALL) ? 1
                               : (abi == FFI_FASTCALL) ? 2
                               : (abi == FFI_REGISTER) ? 3
+                              : (abi == FFI_VECTORCALL_PARTIAL) ? 2
                               : 0;
 
   if (cif->flags == FFI_TYPE_STRUCT)
@@ -915,6 +920,7 @@ ffi_raw_call(ffi_cif *cif, void (*fn)(void), void *rvalue, ffi_raw *fake_avalue)
     case FFI_FASTCALL:
     case FFI_PASCAL:
     case FFI_REGISTER:
+    case FFI_VECTORCALL_PARTIAL:
       ffi_call_win32(ffi_prep_args_raw, &ecif, cif->abi, cif->bytes, cif->flags,
                      ecif.rvalue, fn);
       break;
