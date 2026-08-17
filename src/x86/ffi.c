@@ -1,5 +1,5 @@
 /* -----------------------------------------------------------------------
-   ffi.c - Copyright (c) 2017, 2022  Anthony Green
+   ffi.c - Copyright (c) 2017, 2022, 2026  Anthony Green
            Copyright (c) 1996, 1998, 1999, 2001, 2007, 2008  Red Hat, Inc.
            Copyright (c) 2002  Ranjit Mathew
            Copyright (c) 2002  Bo Thorsen
@@ -75,7 +75,6 @@ ffi_prep_cif_machdep(ffi_cif *cif)
     case FFI_MS_CDECL:
     case FFI_PASCAL:
     case FFI_REGISTER:
-    case FFI_VECTORCALL_PARTIAL:
       break;
     default:
       return FFI_BAD_ABI;
@@ -119,7 +118,7 @@ ffi_prep_cif_machdep(ffi_cif *cif)
       break;
     case FFI_TYPE_STRUCT:
       {
-#if defined(X86_WIN32) || defined(X86_DARWIN)
+#if defined(X86_WIN32) || defined(X86_DARWIN) || defined(X86_FREEBSD)
         size_t size = cif->rtype->size;
         if (size == 1)
           flags = X86_RET_STRUCT_1B;
@@ -139,7 +138,6 @@ ffi_prep_cif_machdep(ffi_cif *cif)
               case FFI_FASTCALL:
               case FFI_STDCALL:
               case FFI_MS_CDECL:
-              case FFI_VECTORCALL_PARTIAL:
                 flags = X86_RET_STRUCTARG;
                 break;
               default:
@@ -250,7 +248,6 @@ static const struct abi_params abi_params[FFI_LAST_ABI] = {
   [FFI_PASCAL] = { -1, R_ECX, 0 },
   /* ??? No defined static chain; gcc does not support REGISTER.  */
   [FFI_REGISTER] = { -1, R_ECX, 3, { R_EAX, R_EDX, R_ECX } },
-  [FFI_VECTORCALL_PARTIAL] = { 1, R_EAX, 2, { R_ECX, R_EDX } },
   [FFI_MS_CDECL] = { 1, R_ECX, 0 }
 };
 
@@ -376,7 +373,7 @@ ffi_call_int (ffi_cif *cif, void (*fn)(void), void *rvalue,
 	  /* Issue 434: For thiscall and fastcall, if the parameter passed
 	     as 64-bit integer or struct, all following integer parameters
 	     will be passed on stack.  */
-	  if ((cabi == FFI_THISCALL || cabi == FFI_FASTCALL || cabi == FFI_VECTORCALL_PARTIAL)
+	  if ((cabi == FFI_THISCALL || cabi == FFI_FASTCALL)
 	      && (t == FFI_TYPE_SINT64
 		  || t == FFI_TYPE_UINT64
 		  || t == FFI_TYPE_STRUCT))
@@ -525,7 +522,7 @@ ffi_closure_inner (struct closure_frame *frame, char *stack)
 	  /* Issue 434: For thiscall and fastcall, if the parameter passed
 	     as 64-bit integer or struct, all following integer parameters
 	     will be passed on stack.  */
-	  if ((cabi == FFI_THISCALL || cabi == FFI_FASTCALL || cabi == FFI_VECTORCALL_PARTIAL)
+	  if ((cabi == FFI_THISCALL || cabi == FFI_FASTCALL)
 	      && (t == FFI_TYPE_SINT64
 		  || t == FFI_TYPE_UINT64
 		  || t == FFI_TYPE_STRUCT))
@@ -557,8 +554,14 @@ ffi_closure_inner (struct closure_frame *frame, char *stack)
       return flags | (cif->bytes << X86_RET_POP_SHIFT);
     case FFI_THISCALL:
     case FFI_FASTCALL:
-      return flags | ((cif->bytes - (narg_reg * FFI_SIZEOF_ARG))
-          << X86_RET_POP_SHIFT);
+      /* The callee must pop exactly the bytes that were passed on the
+	 stack.  Deriving that from cif->bytes minus narg_reg * 4 is wrong
+	 once narg_reg has been force-bumped to 2 (above) for a 64-bit or
+	 struct argument that is itself placed on the stack: the subtraction
+	 then discounts register slots that were never used, under-popping
+	 the stack.  argp has advanced past exactly the stack-resident
+	 arguments (dir == 1 for these ABIs), so use that directly.  */
+      return flags | (((unsigned) (argp - stack)) << X86_RET_POP_SHIFT);
     default:
       return flags;
     }
@@ -579,7 +582,6 @@ ffi_prep_closure_loc (ffi_closure* closure,
     {
     case FFI_SYSV:
     case FFI_MS_CDECL:
-    case FFI_VECTORCALL_PARTIAL:
       dest = ffi_closure_i386;
       break;
     case FFI_STDCALL:
@@ -653,7 +655,6 @@ ffi_prep_go_closure (ffi_go_closure* closure, ffi_cif* cif,
       break;
     case FFI_THISCALL:
     case FFI_FASTCALL:
-    case FFI_VECTORCALL_PARTIAL:
       dest = ffi_go_closure_EAX;
       break;
     case FFI_STDCALL:

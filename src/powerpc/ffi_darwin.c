@@ -4,6 +4,7 @@
    Copyright (C) 1998 Geoffrey Keating
    Copyright (C) 2001 John Hornkvist
    Copyright (C) 2002, 2006, 2007, 2009, 2010 Free Software Foundation, Inc.
+   Copyright (C) 2026 Anthony Green
 
    FFI support for Darwin and AIX.
    
@@ -38,6 +39,35 @@ struct ffi_aix_trampoline_struct {
     void * toc;			/* TOC */
     void * static_chain;	/* Pointer to closure */
 };
+
+/* Closure jump table indexes returned by ffi_closure_helper_common and
+   consumed by the jump tables in aix_closure.S.  These mirror the
+   definitions in ffi_powerpc.h, which this file cannot include because
+   it defines its own (differing) FLAG_* and ffi_dblfl.  */
+#define PPC_LD_NONE		0
+#define PPC_LD_R3		1
+#define PPC_LD_R3R4		2
+#define PPC_LD_F32		3
+#define PPC_LD_F64		4
+#define PPC_LD_F128		5
+#define PPC_LD_U8		6
+#define PPC_LD_S8		7
+#define PPC_LD_U16		8
+#define PPC_LD_S16		9
+
+#ifndef POWERPC64
+# define PPC_LD_U32		PPC_LD_R3
+# define PPC_LD_S32		PPC_LD_R3
+# define PPC_LD_PTR		PPC_LD_R3
+# define PPC_LD_I64		PPC_LD_R3R4
+# define PPC_LD_STRUCT		10
+#else
+# define PPC_LD_U32		10
+# define PPC_LD_S32		11
+# define PPC_LD_PTR		PPC_LD_R3
+# define PPC_LD_I64		PPC_LD_R3
+# define PPC_LD_STRUCT		12
+#endif
 
 extern void ffi_closure_ASM (void);
 
@@ -1192,12 +1222,12 @@ typedef union
   double d;
 } ffi_dblfl;
 
-ffi_type *
+int
 ffi_closure_helper_DARWIN (ffi_closure *, void *,
 			   unsigned long *, ffi_dblfl *);
 
 #if defined (FFI_GO_CLOSURES)
-ffi_type *
+int
 ffi_go_closure_helper_DARWIN (ffi_go_closure*, void *,
 			      unsigned long *, ffi_dblfl *);
 #endif
@@ -1209,7 +1239,7 @@ ffi_go_closure_helper_DARWIN (ffi_go_closure*, void *,
    up space for a return value, ffi_closure_ASM invokes the
    following helper function to do most of the work.  */
 
-static ffi_type *
+static int
 ffi_closure_helper_common (ffi_cif* cif,
 			   void (*fun)(ffi_cif*, void*, void**, void*),
 			   void *user_data, void *rvalue,
@@ -1232,6 +1262,13 @@ ffi_closure_helper_common (ffi_cif* cif,
   long             i, avn;
   ffi_dblfl *      end_pfr = pfr + NUM_FPR_ARG_REGISTERS;
   unsigned         size_al;
+  int              struct_ret_by_value = 0;
+  /* When a struct is returned by value, ffi_closure_ASM's jump-table
+     dispatch carries only a small integer return code (see PPC_LD_* above),
+     with no room for cif->rtype.  We hand cif->rtype back in the first
+     parameter-save slot -- which is dead by the time we return -- for the
+     PPC_LD_STRUCT fragment in darwin_closure.S to recover.  */
+  unsigned long *  pgr0 = pgr;
 #if defined(POWERPC_DARWIN64)
   unsigned 	   fpsused = 0;
 #endif
@@ -1247,12 +1284,16 @@ ffi_closure_helper_common (ffi_cif* cif,
 	  rvalue = (void *) *pgr;
 	  pgr++;
 	}
+      else
+	struct_ret_by_value = 1;
 #elif defined(DARWIN_PPC)
       if (cif->rtype->size > 4)
 	{
 	  rvalue = (void *) *pgr;
 	  pgr++;
 	}
+      else
+	struct_ret_by_value = 1;
 #else /* assume we return by ref.  */
       rvalue = (void *) *pgr;
       pgr++;
@@ -1452,7 +1493,17 @@ ffi_closure_helper_common (ffi_cif* cif,
   switch (cif->rtype->type)
     {
     case FFI_TYPE_VOID:
+      return PPC_LD_NONE;
     case FFI_TYPE_STRUCT:
+      /* A by-reference struct return needs nothing further here: the result
+	 was written straight to the caller's buffer.  A by-value struct
+	 return is loaded into registers by darwin_closure.S, which needs
+	 cif->rtype -- hand it back in the first parameter-save slot.  */
+      if (struct_ret_by_value)
+	{
+	  *pgr0 = (unsigned long) cif->rtype;
+	  return PPC_LD_STRUCT;
+	}
       return PPC_LD_NONE;
     case FFI_TYPE_FLOAT:
       return PPC_LD_F32;
@@ -1485,7 +1536,7 @@ ffi_closure_helper_common (ffi_cif* cif,
     }
 }
 
-ffi_type *
+int
 ffi_closure_helper_DARWIN (ffi_closure *closure, void *rvalue,
 			   unsigned long *pgr, ffi_dblfl *pfr)
 {
@@ -1494,7 +1545,7 @@ ffi_closure_helper_DARWIN (ffi_closure *closure, void *rvalue,
 }
 
 #if defined (FFI_GO_CLOSURES)
-ffi_type *
+int
 ffi_go_closure_helper_DARWIN (ffi_go_closure *closure, void *rvalue,
 			      unsigned long *pgr, ffi_dblfl *pfr)
 {
