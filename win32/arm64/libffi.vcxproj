@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|ARM64"><Configuration>Debug</Configuration><Platform>ARM64</Platform></ProjectConfiguration>
+    <ProjectConfiguration Include="Release|ARM64"><Configuration>Release</Configuration><Platform>ARM64</Platform></ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{1E9D9669-5F4B-42AB-AB04-89CB193954F0}</ProjectGuid>
+    <RootNamespace>libffi</RootNamespace>
+    <Keyword>Win32Proj</Keyword>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <PlatformToolset Condition="'$(PlatformToolset)'==''">v143</PlatformToolset>
+    <UseDebugLibraries Condition="'$(Configuration)'=='Debug'">true</UseDebugLibraries>
+    <UseDebugLibraries Condition="'$(Configuration)'!='Debug'">false</UseDebugLibraries>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <PropertyGroup>
+    <SourceRoot>$(MSBuildThisFileDirectory)..\..\</SourceRoot>
+    <OutDir>$(MSBuildThisFileDirectory)$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(OutDir)obj\</IntDir>
+    <TargetName>libffi</TargetName>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(SourceRoot);$(SourceRoot)include;$(SourceRoot)src\aarch64;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>FFI_STATIC_BUILD;FFI_BUILDING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary Condition="'$(Configuration)'=='Release'">MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeLibrary Condition="'$(Configuration)'=='Debug'">MultiThreadedDebugDLL</RuntimeLibrary>
+      <Optimization Condition="'$(Configuration)'=='Release'">MaxSpeed</Optimization>
+      <Optimization Condition="'$(Configuration)'=='Debug'">Disabled</Optimization>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ProgramDataBaseFileName>$(OutDir)libffi.pdb</ProgramDataBaseFileName>
+    </ClCompile>
+    <Lib><TargetMachine>MachineARM64</TargetMachine></Lib>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="$(SourceRoot)src\prep_cif.c" />
+    <ClCompile Include="$(SourceRoot)src\types.c" />
+    <ClCompile Include="$(SourceRoot)src\raw_api.c" />
+    <ClCompile Include="$(SourceRoot)src\java_raw_api.c" />
+    <ClCompile Include="$(SourceRoot)src\closures.c" />
+    <ClCompile Include="$(SourceRoot)src\tramp.c" />
+    <ClCompile Include="$(SourceRoot)src\aarch64\ffi.c" />
+    <Object Include="$(IntDir)win64_armasm.obj" />
+  </ItemGroup>
+  <Target Name="AssembleARM64" BeforeTargets="ClCompile" Inputs="$(SourceRoot)src\aarch64\win64_armasm.S;$(SourceRoot)src\aarch64\ffitarget.h;$(SourceRoot)fficonfig.h" Outputs="$(IntDir)win64_armasm.obj">
+    <MakeDir Directories="$(IntDir)" />
+    <Exec Command="cl /nologo /EP /I&quot;$(SourceRoot).&quot; /I&quot;$(SourceRoot)include&quot; /I&quot;$(SourceRoot)src\aarch64&quot; &quot;$(SourceRoot)src\aarch64\win64_armasm.S&quot; &gt; &quot;$(IntDir)win64_armasm.i&quot;" />
+    <Exec Command="armasm64 -nologo &quot;$(IntDir)win64_armasm.i&quot; -o &quot;$(IntDir)win64_armasm.obj&quot;" />
+  </Target>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+</Project>
